@@ -61,7 +61,7 @@ class Connection():
         self._batch.add(query, dic, **kwargs)
         return self._batch
 
-    def empty_batch_statement(self, query, dic=None, **kwargs):
+    def empty_batch_statement(self):
         self._batch.clear()
         return self._batch
 

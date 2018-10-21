@@ -1,11 +1,20 @@
-from seeds import fake
+from seeds import fake, NUMBER_GENERATOR
 
 from itertools import permutations
 
+list_of_username = [
+    "rayandrew",
+    "aldrich",
+    "nathanchrst",
+    "girvandip",
+    "kukuhbr",
+    "yowinarto"
+]
+
 users = [
-    dict(username=fake.user_name(),
+    dict(username=user,
          password=fake.password())
-    for _ in range(10)
+    for user in list_of_username
 ]
 
 permutation_users = permutations([user["username"] for user in users], 2)
@@ -23,6 +32,7 @@ def up(conn):
         conn.prepare_batch_statement(query, user)
 
     conn.execute(conn.batch_statement)
+    conn.empty_batch_statement()
 
 
 def down(conn):

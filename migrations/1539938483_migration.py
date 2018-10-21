@@ -7,9 +7,7 @@ def up(conn):
           PRIMARY KEY (username, friend)
         );
     """)
-    pass
 
 
 def down(conn):
     conn.drop("friends")
-    pass

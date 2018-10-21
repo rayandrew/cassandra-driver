@@ -6,9 +6,7 @@ def up(conn):
           body text
         );
     """)
-    pass
 
 
 def down(conn):
     conn.drop("tweets")
-    pass

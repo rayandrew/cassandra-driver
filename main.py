@@ -2,6 +2,7 @@
 
 from __future__ import print_function
 
+from copy import copy
 from utils.Connection import Connection
 import argparse
 
@@ -14,8 +15,10 @@ parser.add_argument('--table', type=str, nargs='?', default='',
                     help='Specify table action [create, drop]')
 parser.add_argument('--create', nargs='+', type=str,
                     help='Create new migration/seeds file [migration, seed [name]]')
-parser.add_argument('--query', nargs='+', type=str,
+parser.add_argument('--query', nargs='?', type=str,
                     help='Querying database')
+parser.add_argument('-t', '--show_tweets', action='store_true')
+parser.add_argument('-tl', '--show_timeline', action='store_true')
 
 import pprint
 
@@ -24,8 +27,8 @@ pp = pprint.PrettyPrinter(indent=2)
 KEYSPACE = "rayandrew"
 
 cassandra = Connection(
-    cluster=["167.205.35.19", "167.205.35.20",
-             "167.205.35.21", "167.205.35.22"],
+    cluster=["159.65.140.125", "167.99.67.66",
+             "206.189.40.171", "206.189.47.228"],
     keyspace="rayandrew",
     connect_timeout=50)
 
@@ -74,8 +77,77 @@ if __name__ == "__main__":
     print('Started')
     args = parser.parse_args()
 
-    # if args.query is not None:
-    #     cassandra.execute(args.query)
+    if args.query is not None:
+        try:
+            result = cassandra.execute(args.query)
+            print("\n==================")
+            print("Result of query")
+            print("==================")
+            for res in result:
+                print(res)
+            print("==================")
+            print("End of result of query")
+            print("==================\n")
+        except:
+            print("Error in query : ", args.query)
+
+    if args.show_tweets:
+        users = cassandra.execute("""
+          SELECT * from users
+        """)
+
+        tweets = cassandra.execute("""
+          SELECT *
+          FROM tweets
+        """)
+
+        for user in users:
+            username = user[0]
+            print("\n> Showing tweets from %s" % username)
+
+            userline = cassandra.execute("""
+              SELECT *
+              FROM userline
+              WHERE username=%s
+            """, (username,))
+
+            for data in userline:
+                tweets_c = copy(tweets)
+                for tweet in tweets_c:
+                    if tweet.tweet_id == data.tweet_id:
+                        print(tweet.username,
+                              "tweeted \"" + tweet.body + "\"")
+
+        print()
+
+    if args.show_timeline:
+        users = cassandra.execute("""
+          SELECT * from users
+        """)
+
+        tweets = cassandra.execute("""
+          SELECT *
+          FROM tweets
+        """)
+
+        for user in users:
+            username = user[0]
+            print("\n> Showing timeline from %s" % username)
+
+            timelines = cassandra.execute("""
+              SELECT username, time, tweet_id
+              FROM timeline
+              WHERE username=%s
+            """, (username,))
+
+            for timeline in timelines:
+                tweets_c = copy(tweets)
+                for tweet in tweets_c:
+                    if tweet.tweet_id == timeline.tweet_id:
+                        print(tweet.username,
+                              "tweeted \"" + tweet.body + "\"")
+
+        print()
 
     if args.migration == 'up':
         migration_up(cassandra)

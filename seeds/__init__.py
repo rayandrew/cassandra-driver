@@ -8,6 +8,8 @@ import time
 
 fake = Faker()
 
+NUMBER_GENERATOR = 5
+
 dir = "seeds"
 
 list_modules = sorted(os.listdir(dir))

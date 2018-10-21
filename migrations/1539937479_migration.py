@@ -5,9 +5,7 @@ def up(conn):
           password text
         );
     """)
-    pass
 
 
 def down(conn):
     conn.drop("users")
-    pass

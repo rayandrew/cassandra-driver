@@ -7,9 +7,7 @@ def up(conn):
           PRIMARY KEY (username, time)
         ) WITH CLUSTERING ORDER BY (time DESC);
     """)
-    pass
 
 
 def down(conn):
     conn.drop("timeline")
-    pass

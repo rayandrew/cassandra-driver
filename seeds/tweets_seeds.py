@@ -1,47 +1,56 @@
 from seeds import fake
-from seeds.users_seeds import users, permutation_users
+from datetime import datetime
+from cassandra.util import uuid, uuid_from_time
+from seeds.users_seeds import users
 
-current_user, *list_followers = users
 
-tweet_id = 1
-tweet = fake.sentence()
-time = fake.date_time()
+def make_tweet(conn, username):
+    tweet_id = uuid.uuid1()
+    timeuuid = uuid_from_time(datetime.now())
+    content = fake.sentence()
+    conn.prepare_batch_statement(
+        """
+    INSERT INTO tweets (tweet_id, username, body)
+    VALUES (%s, %s, %s)
+    """,
+        (tweet_id, username, content)
+    )
+    conn.prepare_batch_statement(
+        """
+    INSERT INTO userline (username, time, tweet_id)
+    VALUES (%s, %s, %s)
+    """,
+        (username, timeuuid, tweet_id)
+    )
+    conn.prepare_batch_statement(
+        """
+    INSERT INTO timeline (username, time, tweet_id)
+    VALUES (%s, %s, %s)
+    """,
+        (username, timeuuid, tweet_id)
+    )
+    # Insert tweets to followers' timeline
+    followers = conn.execute("""
+      SELECT follower
+      FROM followers
+      WHERE username=%s
+    """, (username,))
 
-timelines = [
-    (user, time, tweet_id)
-    for user in list_followers
-]
+    for follower in followers:
+        conn.prepare_batch_statement("""
+          INSERT INTO timeline (username, time, tweet_id)
+          VALUES (%s, %s, %s)
+        """, (follower.follower, timeuuid, tweet_id))
 
 
 def up(conn):
-    query_tweet = conn.prepare_statement("""
-      INSERT INTO tweets (tweet_id, username, body)
-      VALUES (?, ?, ?)
-    """)
-
-    query_timeline = conn.prepare_statement("""
-      INSERT INTO timeline (username, time, tweet_id)
-      VALUES (?, ?, ?)
-    """)
-
-    query_userline = conn.prepare_statement("""
-      INSERT INTO userline (username, time, tweet_id)
-      VALUES (?, ?, ?)
-    """)
-
-    print("Inserting tweet")
-    conn.execute(query_tweet, (tweet_id, current_user, tweet))
-
-    print("Inserting current_user timeline")
-    conn.execute(query_timeline, (tweet_id, time, tweet_id))
-
-    print("Inserting current_user userline")
-    conn.execute(query_userline, (tweet_id, time, tweet_id))
-
-    for timeline in timelines:
-        conn.prepare_batch_statement(query_timeline, timeline)
+    for user in users:
+        print("Inserting tweets for user: ", user["username"])
+        for _ in range(10):
+            make_tweet(conn, user["username"])
 
     conn.execute(conn.batch_statement)
+    conn.empty_batch_statement()
 
 
 def down(conn):
